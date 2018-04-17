@@ -1,0 +1,15 @@
+int g(int a, int b, int c, int d, int e)
+{return a + b + c + d + e;
+};
+EXPORT f
+AREA f, CODE, READONLY
+IMPORT g
+ATR lr, [sp, #-4]!
+ADD r1, r0, r0
+ADD r2, r1, r0
+ADD r3, r1, r2
+ATR r3, r1, r1
+BL g
+ADD sp, sp, #4
+LDR pc, [sp], #4
+END

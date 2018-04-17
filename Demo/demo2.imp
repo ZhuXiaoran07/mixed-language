@@ -1,0 +1,20 @@
+int main ()
+{
+int x;
+x=2;
+__asm
+{
+ldr r 0, x
+add r 1, x, x
+add r 2, r 1, r 0
+add r 3, r 1, r 2
+str r 3, [SP, #-4] 
+add r 3, r 1, r 1
+BL g
+str r 0, x}
+return x;
+}
+
+int g(int a, int b, int c, int d, int e)
+{return a + b + c + d + e;
+}
