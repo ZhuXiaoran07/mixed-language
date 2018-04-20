@@ -20,6 +20,7 @@ module MIX-SYNTAX
   
   syntax Stmt  ::=  Id "=" AExp";"                              [strict(2)]
                  | "if" "(" BExp ")" Block "else" Block         [strict(1)]
+				 | "while" "(" BExp ")" Block
                  | Type Ids ";"
 				 | FunctionCall ";"
 				 | FunDef
@@ -120,6 +121,7 @@ module MIX
        <store>... N |-> (_ => I) ...</store>  [assignment]
   rule if (true)  S else _ => S
   rule if (false) _ else S => S
+  rule while (BE) {S} => if (BE) {S while (BE) {S}} else {.Stmts}  [structural]
 
 
   rule <k> int (X,Xs => Xs); ...</k>
@@ -148,9 +150,9 @@ module MIX
 	 <fun> ... .Map=>F|->functionBody(Ps, T, Ss) ...</fun>
 	 
  // main function call	 
- rule <k> execute => Ss </k>
+ rule <k> execute =>Ps ~> Ss </k>
       <env> Env:Map=>.Map </env>
-      <fun> ... main |-> functionBody(_, _:Type, Ss) ... </fun>
+      <fun> ... main |-> functionBody(Ps, T:Type, Ss) ... </fun>
 	  <fstack> .List =>ListItem((Env, .K)) </fstack>
 	  
  rule <k> execute => Ins </k>
