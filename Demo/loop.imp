@@ -1,0 +1,18 @@
+int main()
+{
+int s;
+int result;
+s=10;
+result=loop(s);
+return result;
+}
+
+
+
+loop
+add r 1, r 1, r 2
+add r 2, r 2, #1
+cmp r 0, r 2
+BEQ END
+B loop
+END

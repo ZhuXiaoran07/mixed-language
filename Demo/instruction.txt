@@ -1,0 +1,24 @@
+load/store:
+
+STMDB stack register(s)
+STMIB register register
+LDR   register register
+LDMIA stack register
+STR   register register
+
+
+
+AExp:
+ADD  register 
+SUB
+mov
+
+
+
+
+Bool:
+NOP
+MRS
+MSR
+ORR
+and

@@ -1,7 +1,7 @@
 
 
 module MIX-SYNTAX
-  syntax AExp  ::= Int | String | Id
+  syntax AExp  ::= Int | String | Id 
                  | "++" Id
                  | FunctionCall
                  > AExp "/" AExp              [left, strict, division]
@@ -9,6 +9,7 @@ module MIX-SYNTAX
                  > AExp "+" AExp              [left, strict]
 				 | AExp "-" AExp              [left, strict]
                  | "(" AExp ")"               [bracket]
+				 
 				 
   syntax BExp  ::= Bool
                  | AExp "<=" AExp             [seqstrict]
@@ -26,11 +27,19 @@ module MIX-SYNTAX
 				 | FunDef
 				 | "return" AExp ";"                            [strict(1)]
 				 | InsList
+				 | Instr
 				 
 				 
-				 			 
-				
- syntax InsList ::= "_asm_"	"{" InlInstrs"}"			 
+ syntax BOpCode ::=  "sub" | "mul" | "div" | "orr" | "and"	
+ syntax BInst   ::= BOpCode AExp "," AExp "," AExp  [strict(3)]
+ syntax BInst   ::="add" AExp "," AExp "," AExp  [strict(2,3)]
+ syntax JOpCode ::= "jmp" | "B" | "BL" | "BEQ"
+ syntax JInst   ::= JOpCode Id | JOpCode "END"
+ syntax MOpCode ::= "ldr" | "str" | "stmdb" | "stmib" | "ldmia" | "mrs" | "msr" | "mov" | "cmp"
+ syntax MInst   ::= MOpCode  Reg "," AExp  [seqstrict(3)]
+ //syntax InsList ::= "_asm_"	"{" InlInstrs"}"	
+ syntax Instr    ::= BInst | JInst | MInst | "END"
+
  syntax FunctionCall::= Id "(" AExps")" 
 //[strict(2)]	
 
@@ -41,18 +50,20 @@ syntax VariDecls::=List{Param, ";"}
 
 syntax FunDef::=FunctionDef Block
 syntax FunctionDef::= Type Id "("Params ")"
-syntax Id ::= "main" | "sum" | "g"
+syntax Id ::= "main" | "sum" | "g" | "loop" 
+
 			  
 
-  syntax Stmt ::= InlInstr | AssCall	
+  //syntax Stmt ::= InlInstr | AssCall	
+  syntax Stmt ::= AssCall	
   syntax AssCall::=  Id Instrs "END"  
-  syntax Instr ::= "add" Reg "," AExp "," AExp  [strict(2, 3)]
-				 | "sub" Reg "," AExp "," AExp  [strict(2, 3)]
-                 | "ldr" Reg "," AExp		    [strict(2)]	
-				 | "str" Reg "," AExp          
-				 | "B"   Id
-				 | "BL"  Id
-                 | "END"
+ // syntax Instr ::= "add" Reg "," AExp "," AExp  [strict(2, 3)]
+ //				 | "sub" Reg "," AExp "," AExp  [strict(2, 3)]
+//               | "ldr" Reg "," AExp		    [strict(2)]	
+//				 | "str" Reg "," AExp          
+//				 | "B"   Id
+//				 | "BL"  Id
+//                | "END"
 							 
   syntax AExp   ::= "#" Int
                  | Stack
@@ -61,11 +72,11 @@ syntax Id ::= "main" | "sum" | "g"
 				 | "[" "SP" "," AExp "]"
   syntax Reg    ::= "r" Int	
   
-  
- syntax InsList ::= "__asm"	"{" InlInstrs"}" 
- syntax InlInstr ::= "add" AExp "," AExp "," AExp  [seqstrict(2, 3)]
-				   | "sub" AExp "," AExp "," AExp  [seqstrict(2, 3)]
-				   | Instr 
+  syntax InsList ::= "__asm"	"{" Instrs"}" 
+// syntax InsList ::= "__asm"	"{" InlInstrs"}" 
+// syntax InlInstr ::= "add" AExp "," AExp "," AExp  [seqstrict(2, 3)]
+//				   | "sub" AExp "," AExp "," AExp  [seqstrict(2, 3)]
+//				   | Instr 
 					 
 					 
   syntax Ids      ::= List{Id,","}
@@ -73,13 +84,13 @@ syntax Id ::= "main" | "sum" | "g"
   syntax Stmts    ::= List{Stmt,""}
   syntax Ints     ::= List{Int, ""}
   syntax Instrs   ::= List{Instr, ""}
-  syntax InlInstrs::= List{InlInstr, ""}
+//  syntax InlInstrs::= List{InlInstr, ""}
 endmodule
 
 
 module MIX
   imports MIX-SYNTAX
-  syntax KResult ::= Int
+  syntax KResult ::= Int | Bool
   syntax KItem ::="execute"
   
   configuration <T>
@@ -90,6 +101,7 @@ module MIX
             <fun>.Map</fun>              //maps function name to function body and parameter
             <fstack> .List </fstack>     //store context for function call         
             <reg> .Map </reg>
+			<sreg> .Map </sreg>
 			<stack> .List </stack>
             </T>
 
@@ -123,7 +135,7 @@ module MIX
   rule if (false) _ else S => S
   rule while (BE) {S} => if (BE) {S while (BE) {S}} else {.Stmts}  [structural]
 
-
+  rule .AExps => .
   rule <k> int (X,Xs => Xs); ...</k>
        <env> Rho => Rho(X|-> L) </env>
        <store>... .Map => L |-> 0 ...</store>
@@ -140,6 +152,7 @@ module MIX
 
   rule mkDecls((T:Type X:Id, Ps:Params), (V:AExp, Vs:AExps))
     => T:Type X;~>X=V;~> mkDecls(Ps,Vs)
+
 	
   rule mkDecls(.Params,.AExps) => .K
   
@@ -162,7 +175,7 @@ module MIX
  // Function Call
  rule
      <k>(F1:Id(As:AExps)~>K) =>(mkDecls(Ps, As)~>Ss)</k>
-	 <env> Env:Map=>.Map </env>
+	 <env> Env:Map</env>
      <fstack> .List => ListItem((Env, K)) ...</fstack>
 	 <fun> ...F1|->functionBody(Ps:Params, _:Type, Ss:Stmts)
     ...</fun>
@@ -203,7 +216,7 @@ rule
     <k>(F1:Id(As:AExps)~>K) =>(AssReg(As, 0)~>Is~>END)</k>
     <fstack> .List => ListItem((Env, K)) ...</fstack>
 	<fun> ...F1|->functionBody(Is)...</fun>
-	<env> Env:Map=>.Map </env>
+	<env> Env:Map </env>
 	
 syntax KItem ::= AssReg(AExps, Int)  [function]
 
@@ -233,6 +246,10 @@ rule AssReg(.AExps, I)=>.
 //assembly  
   rule <k> r I:Int => I2:Int ...</k>
        <reg>... I |-> I2 ...</reg>
+	   
+  rule <k> r I:Int => 0 ... </k>
+       <reg> R:Map => R[I <- 0]</reg>
+	   when notBool I in keys(R)
   
    rule # I:Int => I [macro]
    rule [SP]=> [SP, 0] [macro]
@@ -263,7 +280,8 @@ rule AssReg(.AExps, I)=>.
       <reg> R:Map => R[I <- I2 +Int I3] </reg>
 	  
 	  
-  rule __asm{Is:InlInstrs} =>Is
+  rule __asm{Is:Instrs} =>Is
+
   rule 
       <k> add X:Id , I2:Int , I3:Int =>. ...</k>
       <env> ... X |-> LX ... </env>
@@ -290,11 +308,28 @@ rule AssReg(.AExps, I)=>.
   // jump instructions
   rule <k> B X:Id ~> _ => Is ~>END </k>
        <fun> ... X |-> functionBody(Is) ... </fun>
-	   <fstack> .List => ListItem((.K)) ...</fstack>
+	  // <fstack> .List => ListItem((.K)) ...</fstack>
 	   
   rule <k> BL X:Id ~> K =>Is ~>END </k>
        <fun> ... X |-> functionBody(Is) ... </fun>
 	   <fstack> .List => ListItem((K)) ...</fstack>
+	   
+  rule <k> orr r I:Int , I2:Int , I3:Int =>. ...</k>
+       <reg> R:Map => R[I <- I2 |Int I3] </reg>
+	   
+  rule <k> and r I:Int , I2:Int , I3:Int =>. ...</k>
+       <reg> R:Map => R[I <- I2 &Int I3] </reg>
+	   
+  rule <k> cmp r I:Int , I1:Int => . ...</k>
+       <reg> ... I|-> I2 ... </reg>
+       <sreg> R:Map=> R[0<-(I2 ==Int I1)]  </sreg>
+	   
+   rule <k> BEQ END => . ... </k>
+        <sreg> ... 0 |-> false ... </sreg>
+		
+   rule <k> (BEQ END) => (B END)... </k> 
+        <sreg> ... 0 |-> true ... </sreg>
+	   
 	   
   syntax KItem ::= AssPara(Params, Int)  [function]
   rule AssPara((T:Type X:Id, Ps:Params), N:Int) 
@@ -307,13 +342,17 @@ rule AssReg(.AExps, I)=>.
    rule 
         <k> B X:Id ~> _ => AssPara(Ps, 0) ~> Ss </k>
         <fun> ...X|->functionBody(Ps:Params, _:Type, Ss:Stmts)...</fun>
-        <fstack> .List => ListItem((.K)) ...</fstack>
+      //  <fstack> .List => ListItem((.K)) ...</fstack>
 		
 	rule 
 	   <k> BL X:Id ~> K => AssPara(Ps, 0) ~> Ss  </k>
        <fun> ...X|->functionBody(Ps:Params, _:Type, Ss:Stmts)...</fun>
 	   <fstack> .List => ListItem((K)) ...</fstack>
-	   
+
+    rule 
+       <k> B END ~> _ => END </k>
+     //  requires X==K END 
+	  
 		   
     // return to assembly 
     rule 
