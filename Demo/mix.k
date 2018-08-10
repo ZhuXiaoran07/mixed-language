@@ -56,7 +56,7 @@ syntax Id ::= "main" | "sum" | "g" | "loop"
 
   //syntax Stmt ::= InlInstr | AssCall	
   syntax Stmt ::= AssCall	
-  syntax AssCall::=  Id Instrs "END"  
+  syntax AssCall::=  Id Instrs  
  // syntax Instr ::= "add" Reg "," AExp "," AExp  [strict(2, 3)]
  //				 | "sub" Reg "," AExp "," AExp  [strict(2, 3)]
 //               | "ldr" Reg "," AExp		    [strict(2)]	
@@ -188,7 +188,7 @@ module MIX
 	 
   
 
- rule <k> F:Id Is:Instrs END=>. ...</k>
+ rule <k> F:Id Is:Instrs=>. ...</k>
       <fun> ... .Map=>  F|->functionBody(Is) ... </fun>
 
 // auxiliary instructions
@@ -306,7 +306,7 @@ rule AssReg(.AExps, I)=>.
        <reg> R:Map => R[I <- I1] </reg>
 	   
   // jump instructions
-  rule <k> B X:Id ~> _ => Is ~>END </k>
+  rule <k> B X:Id ~> _ => Is  </k>
        <fun> ... X |-> functionBody(Is) ... </fun>
 	  // <fstack> .List => ListItem((.K)) ...</fstack>
 	   
@@ -339,11 +339,11 @@ rule AssReg(.AExps, I)=>.
   rule AssPara(.Params, N) => .
    
    // assembler call C function
-   rule 
+   /*rule 
         <k> B X:Id ~> _ => AssPara(Ps, 0) ~> Ss </k>
         <fun> ...X|->functionBody(Ps:Params, _:Type, Ss:Stmts)...</fun>
       //  <fstack> .List => ListItem((.K)) ...</fstack>
-		
+	*/	
 	rule 
 	   <k> BL X:Id ~> K => AssPara(Ps, 0) ~> Ss  </k>
        <fun> ...X|->functionBody(Ps:Params, _:Type, Ss:Stmts)...</fun>
@@ -355,10 +355,10 @@ rule AssReg(.AExps, I)=>.
 	  
 		   
     // return to assembly 
-    rule 
+  /*  rule 
 	   <k>return I:Int;~>_ =>ldr r 0, I~>K</k>
 	   <fstack> ListItem((K)) L => L</fstack> 	   
-	  	
+	  */	
 	// Assembler Function Return
     rule 
        <k> END ~>_ =>I~>K</k>

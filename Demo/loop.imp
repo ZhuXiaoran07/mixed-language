@@ -10,8 +10,8 @@ return result;
 
 
 loop
-add r 1, r 1, r 2
 add r 2, r 2, #1
+add r 1, r 1, r 2
 cmp r 0, r 2
 BEQ END
 B loop
