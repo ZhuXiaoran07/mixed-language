@@ -1,0 +1,72 @@
+StatusType Schedule(void)
+{
+	
+#if (CFG_STATUS==STATUS_EXTENDED)
+	if(osLevel != LEVEL_TASK)
+	{
+		Call_ErrorHook(OSError_Save_Schedule(),OSServiceId_Schedule, E_OS_CALLEVEL);
+		return E_OS_CALLEVEL;
+	}
+	
+	if(osTcb[osRunningTask].resCount>0)
+	{
+		Call_ErrorHook(OSError_Save_Schedule(),OSServiceId_Schedule, E_OS_RESOURCE);
+		return E_OS_RESOURCE;
+	}
+#endif
+
+      //OSDisableInterrupts();    //James, replace by below. Maybe better to use SuspendOSInterrupts()
+	DisableAllInterrupts();
+
+#if (CFG_INTERNAL_RESOURCE_MAX >0 )
+	if(osTaskCeiling[osRunningTask] != 0)
+	{
+		OSReadyQueueRemoveFirst(osRunningTcb->runPrio);
+		osRunningTcb->runPrio = osTask[osRunningTask].initPrio;
+		OSReadyQueueAppend(osRunningTask, osRunningTcb->runPrio);
+	}
+#endif
+
+	osHighPrio = OSGetHighPrio();
+	osHighPriTask = OSReadyQueueGetFirst(osHighPrio);
+	if(osHighPriTask != osRunningTask)
+	{	
+		osDispatchLocker = 0;
+		OSDispatch();
+	}
+	
+#if (CFG_INTERNAL_RESOURCE_MAX >0 )
+	OSGetInternalResource();
+#endif
+
+	//OSEnableInterrupts();   //James, replace by below. Maybe better to use ResumeOSInterrupts()
+	EnableAllInterrupts();
+	
+	return E_OK;
+}
+#define EnableAllInterrupts_Arch()	ResumeAllInterrupts_Arch()
+
+/** \brief Disable All Interrupts Arch */
+#define DisableAllInterrupts_Arch() SuspendAllInterrupts_Arch()
+
+/** \brief Resume All Interrupts Arch */
+#define ResumeAllInterrupts_Arch()						\
+	{																\
+		__asm__ __volatile__ (								\
+			"mrs r7, CPSR								\t\n"	\
+			"and r7, r7, #0xFFFFFF3F				\t\n"	\
+			"msr CPSR, r7								\t\n"	\
+			: : : "r7"											\
+		);															\
+	}
+
+/** \brief Suspend All Interrupts Arch */
+#define SuspendAllInterrupts_Arch()						\
+	{																\
+		__asm__ __volatile__ (								\
+			"mrs r7, CPSR								\t\n"	\
+			"orr r7, r7, #0xC0						\t\n"	\
+			"msr CPSR, r7								\t\n"	\
+			: : : "r7"											\
+		);															\
+	}

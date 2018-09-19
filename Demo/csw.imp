@@ -1,0 +1,36 @@
+void OS_Sched()
+{
+//OS_ENTER_CRITICAL();
+OS_CPU_SR_Save();
+    if (OSIntNesting == 0) {                           /* Schedule only if all ISRs done and ...       */
+        if (OSLockNesting == 0) {                      /* ... scheduler is not locked                  */
+            OS_SchedNew();
+            if (OSPrioHighRdy != OSPrioCur) {          /* No Ctx Sw if current task is highest rdy     */
+                OSTCBHighRdy = OSTCBPrioTbl[OSPrioHighRdy];
+#if OS_TASK_PROFILE_EN > 0
+                OSTCBHighRdy->OSTCBCtxSwCtr++;         /* Inc. # of context switches to this task      */
+#endif
+                OSCtxSwCtr++;                          /* Increment context switch counter             */
+                OS_TASK_SW();                          /* Perform a context switch                     */
+            }
+        }
+    }
+    //OS_EXIT_CRITICAL();
+	OS_CPU_SR_Restore();
+}
+}
+
+OS_CPU_SR_Save:
+        MOVE.W   SR,D0            ; Copy SR into D0 
+        MOVE.L   D0,-(A7)         ; Save D0
+        ORI.L    #0x0700,D0       ; Disable interrupts
+        MOVE     D0,SR
+        MOVE.L   (A7)+,D0         ; Restore D0
+        RTS
+		
+OS_CPU_SR_Restore:
+        MOVE.L   D0,-(A7)         ; Save D0
+        MOVE.W   10(A7),D0 
+        MOVE.W    D0,SR
+        MOVE.L   (A7)+,D0         ; Restore D0
+        RTS

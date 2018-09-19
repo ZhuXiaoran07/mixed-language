@@ -44,13 +44,13 @@ module MIX-SYNTAX
 //[strict(2)]	
 
 syntax Param::=Type Id
-syntax Type::="int"
+syntax Type::="int" | "void"
 syntax Params::=List{Param, ","}
 syntax VariDecls::=List{Param, ";"}
 
 syntax FunDef::=FunctionDef Block
 syntax FunctionDef::= Type Id "("Params ")"
-syntax Id ::= "main" | "sum" | "g" | "loop" 
+syntax Id ::= "main" | "sum" | "g" | "loop" | "Schedule" | "DisableAllInterrupts" | "EnableAllInterrupts"
 
 			  
 

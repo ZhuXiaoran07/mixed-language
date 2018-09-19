@@ -1,0 +1,31 @@
+Schedule()
+{
+
+DisableAllInterrupts();
+if (OSReadyQueue(First.Prio)>OSRunningTcb.Prio)
+{
+nextTask.Tcb=OSReadyQueue(First.Tcb)
+OSReadyQueueRemove(First.Id, First.Prio);
+OSReadyQueueAppend(osRunningTask, osRunningTcb.Prio);
+OSRunningTcb=nextTask.Tcb;
+}
+
+EnableAllInterrupts();
+}
+
+
+
+EnableAllInterrupts																		
+			mrs r7, CPSR								
+			and r7, r7, #0xFFFFFF3F			
+			msr CPSR, r7							
+			: : : r7										
+
+
+
+DisableAllInterrupts					
+			mrs r7, CPSR								
+			orr r7, r7, #0xC0						
+			msr CPSR, r7								
+			: : : r7											
+	
